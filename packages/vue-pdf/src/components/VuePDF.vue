@@ -232,7 +232,13 @@ function setupCanvas(viewport: PageViewport, partialViewBox?: PartialViewbox): H
   return canvas;
 }
 
+let animationFrame: ReturnType<typeof requestAnimationFrame> | null = null;
+
 function cancelRender() {
+  if (animationFrame) {
+    cancelAnimationFrame(animationFrame);
+    animationFrame = null;
+  }
   if (renderTask) renderTask.cancel();
 }
 
@@ -242,51 +248,53 @@ function renderPage(pageNum: number) {
     .then((page) => {
       cancelRender();
 
-      const defaultViewport = page.getViewport();
-      const viewportParams: GetViewportParameters = {
-        scale: getScale(page),
-        rotation: getRotation((props.rotation || 0) + defaultViewport.rotation),
-        offsetX: - (props.partialViewbox?.offsetX ?? 0),
-        offsetY: - (props.partialViewbox?.offsetY ?? 0),
-      };
-      const viewport = page.getViewport(viewportParams);
+      animationFrame = requestAnimationFrame(() => {
+        const defaultViewport = page.getViewport();
+        const viewportParams: GetViewportParameters = {
+          scale: getScale(page),
+          rotation: getRotation((props.rotation || 0) + defaultViewport.rotation),
+          offsetX: - (props.partialViewbox?.offsetX ?? 0),
+          offsetY: - (props.partialViewbox?.offsetY ?? 0),
+        };
+        const viewport = page.getViewport(viewportParams);
 
-      const oldCanvas = getCurrentCanvas();
-      const canvas = setupCanvas(viewport, props.partialViewbox);
+        const oldCanvas = getCurrentCanvas();
+        const canvas = setupCanvas(viewport, props.partialViewbox);
 
-      const outputScale = window.devicePixelRatio || 1;
-      const transform =
-        outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined;
+        const outputScale = window.devicePixelRatio || 1;
+        const transform =
+          outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined;
 
-      // Render PDF page into canvas context
-      const renderContext: RenderParameters = {
-        canvas: canvas,
-        viewport,
-        annotationMode: props.hideForms
-          ? PDFJS.AnnotationMode.ENABLE
-          : PDFJS.AnnotationMode.ENABLE_FORMS,
-        transform,
-        intent: props.intent,
-      };
+        // Render PDF page into canvas context
+        const renderContext: RenderParameters = {
+          canvas: canvas,
+          viewport,
+          annotationMode: props.hideForms
+            ? PDFJS.AnnotationMode.ENABLE
+            : PDFJS.AnnotationMode.ENABLE_FORMS,
+          transform,
+          intent: props.intent,
+        };
 
-      if (canvas?.getAttribute("role") !== "main") {
-        if (oldCanvas) container.value?.replaceChild(canvas, oldCanvas);
-      } else {
-        canvas.removeAttribute("role");
-      }
+        if (canvas?.getAttribute("role") !== "main") {
+          if (oldCanvas) container.value?.replaceChild(canvas, oldCanvas);
+        } else {
+          canvas.removeAttribute("role");
+        }
 
-      internalProps.value.page = page;
-      internalProps.value.viewport = viewport;
-      renderTask = page.render(renderContext);
-      renderTask.promise
-        .then(() => {
-          loading.value = false;
-          paintWatermark(viewport.scale);
-          emit("loaded", internalProps.value.viewport!);
-        })
-        .catch(() => {
-          // render task cancelled
-        });
+        internalProps.value.page = page;
+        internalProps.value.viewport = viewport;
+        renderTask = page.render(renderContext);
+        renderTask.promise
+          .then(() => {
+            loading.value = false;
+            paintWatermark(viewport.scale);
+            emit("loaded", internalProps.value.viewport!);
+          })
+          .catch(() => {
+            // render task cancelled
+          });
+      })
     });
 }
 
