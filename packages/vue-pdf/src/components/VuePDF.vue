@@ -207,8 +207,8 @@ function setupCanvas(viewport: PageViewport, partialViewBox?: PartialViewbox): H
     canvas.setAttribute("dir", "ltr");
   }
 
-  const widthX = partialViewBox?.width ?? 0;
-  const heightY = partialViewBox?.height ?? 0;
+  const widthX = partialViewBox?.width ?? viewport.width;
+  const heightY = partialViewBox?.height ?? viewport.height;
 
   const outputScale = window.devicePixelRatio || 1;
   canvas.width = Math.floor(viewport.width * outputScale - (viewport.width * outputScale - outputScale * widthX));
