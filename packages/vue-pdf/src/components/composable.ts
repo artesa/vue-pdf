@@ -8,13 +8,6 @@ import type { OnPasswordCallback, PDFDestination, PDFInfo, PDFOptions, PDFSrc } 
 import { getDestinationArray, getDestinationRef, getLocation, isSpecLike } from './utils/destination'
 import { addStylesToIframe, createIframe } from './utils/miscellaneous'
 
-// Could not find a way to make this work with vite, importing the worker entry bundle the whole worker to the the final output
-// https://erindoyle.dev/using-pdfjs-with-vite/
-// PDFJS.GlobalWorkerOptions.workerSrc = PDFWorker
-function configWorker(wokerSrc: string) {
-  PDFJS.GlobalWorkerOptions.workerSrc = wokerSrc
-}
-
 /**
  * @typedef {Object} UsePDFParameters
  * @property {string} password
@@ -42,9 +35,6 @@ export function usePDF(src: PDFSrc | Ref<PDFSrc>,
     password: '',
   },
 ) {
-  if (!PDFJS.GlobalWorkerOptions?.workerSrc)
-    configWorker(PDFWorker)
-
   const pdf = shallowRef<PDFDocumentLoadingTask>()
   const pdfDoc = shallowRef<PDFDocumentProxy>()
   const pages = shallowRef(0)
@@ -130,7 +120,7 @@ export function usePDF(src: PDFSrc | Ref<PDFSrc>,
 
   async function download(filename = 'filename') {
     const bytes = await getBytes()
-    const blobBytes = new Blob([bytes], { type: 'application/pdf' })
+    const blobBytes = new Blob([bytes as Uint8Array<ArrayBuffer>], { type: 'application/pdf' })
     const blobUrl = URL.createObjectURL(blobBytes)
 
     const anchorDownload = document.createElement('a')
