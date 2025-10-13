@@ -120,7 +120,7 @@ export function usePDF(src: PDFSrc | Ref<PDFSrc>,
 
   async function download(filename = 'filename') {
     const bytes = await getBytes()
-    const blobBytes = new Blob([bytes as Uint8Array<ArrayBuffer>], { type: 'application/pdf' })
+    const blobBytes = new Blob([bytes as any], { type: 'application/pdf' })
     const blobUrl = URL.createObjectURL(blobBytes)
 
     const anchorDownload = document.createElement('a')

@@ -2,6 +2,11 @@ import { beforeAll, expect, test, vi } from 'vitest'
 
 import { mount } from '@vue/test-utils'
 
+import * as PDFJS from 'pdfjs-dist'
+import PDFWorker from 'pdfjs-dist/build/pdf.worker.min?url'
+PDFJS.GlobalWorkerOptions.workerSrc = PDFWorker;
+import "pdfjs-dist/web/pdf_viewer.css";
+
 import { VuePDF, usePDF } from '@tato30/vue-pdf'
 
 const { pdf } = usePDF(

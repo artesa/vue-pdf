@@ -2,6 +2,11 @@ import { beforeAll, describe, expect, test, vi } from 'vitest'
 
 import { mount } from '@vue/test-utils'
 
+import * as PDFJS from 'pdfjs-dist'
+import PDFWorker from 'pdfjs-dist/build/pdf.worker.min?url'
+PDFJS.GlobalWorkerOptions.workerSrc = PDFWorker;
+import "pdfjs-dist/web/pdf_viewer.css";
+
 import { VuePDF, usePDF } from '@tato30/vue-pdf'
 import type { HighlightEventPayload } from '@tato30/vue-pdf/src/components/types.ts'
 
@@ -15,6 +20,7 @@ describe('Text Layer', () => {
   )
 
   beforeAll(async () => {
+    PDFJS.GlobalWorkerOptions.workerSrc = PDFWorker;
     await vi.waitUntil(() => pdf.value, { timeout: 10000 })
   })
 
@@ -90,6 +96,7 @@ describe('Annotation Layer', () => {
   const { pdf: pdf45 } = usePDF(a45PDF)
 
   beforeAll(async () => {
+    PDFJS.GlobalWorkerOptions.workerSrc = PDFWorker;
     await vi.waitUntil(() => pdf.value, { timeout: 5000 })
     await vi.waitUntil(() => pdf45.value, { timeout: 5000 })
   })
@@ -225,6 +232,7 @@ describe('XFA Layer', () => {
   })
 
   beforeAll(async () => {
+    PDFJS.GlobalWorkerOptions.workerSrc = PDFWorker;
     await vi.waitUntil(() => pdf.value, { timeout: 5000 })
   })
 

@@ -2,7 +2,14 @@ import { beforeAll, expect, test, vi } from 'vitest'
 
 import { mount } from '@vue/test-utils'
 
+import * as PDFJS from 'pdfjs-dist'
+import PDFWorker from 'pdfjs-dist/build/pdf.worker.min?url'
+PDFJS.GlobalWorkerOptions.workerSrc = PDFWorker;
+import "pdfjs-dist/web/pdf_viewer.css";
+
 import { VuePDF, usePDF } from '@tato30/vue-pdf'
+
+
 
 const { pdf, pages } = usePDF(
   'https://raw.githubusercontent.com/mozilla/pdf.js/ba2edeae/web/compressed.tracemonkey-pldi-09.pdf',
@@ -35,8 +42,8 @@ test('Load/Mount component', async () => {
       scale: 1,
       userUnit: 1,
       rotation: 0,
-      offsetX: 0,
-      offsetY: 0,
+      offsetX: -0,
+      offsetY: -0,
       transform: [1, 0, 0, -1, 0, 792],
       width: 612,
       height: 792,
