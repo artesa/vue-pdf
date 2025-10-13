@@ -279,3 +279,15 @@ const annotationMap = ref({ '7R': { value: 'Modified value' } })
 
 <VuePDF :pdf="pdf" annotation-layer :annotations-map="annotationMap" />
 ```
+
+## partial-viewbox
+
+Type: `object` <br />
+Required: `false` <br />
+Default: `undefined` <br />
+
+Render the viewport only partial. This can be used to optimize rendering for big pdfs or big scale values on mobile.
+
+```vue
+<VuePDF :pdf="pdf" :partial-viewbox="{ offsetX: 100, offsetY: 100, width: 200, height: 200 }" />
+```

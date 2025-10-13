@@ -1,7 +1,7 @@
 <!-- eslint-disable no-case-declarations -->
 <script setup lang="ts">
 import * as PDFJS from "pdfjs-dist";
-import { computed, onMounted, onUnmounted, ref, toRaw, watch } from "vue";
+import { computed, onMounted, onUnmounted, ref, toRaw, watch, readonly } from "vue";
 
 import "pdfjs-dist/web/pdf_viewer.css";
 
@@ -35,6 +35,13 @@ interface InternalProps {
   viewport: PageViewport | undefined;
 }
 
+export interface PartialViewbox {
+  offsetX: number;
+  offsetY: number;
+  width: number;
+  height: number;
+}
+
 const props = withDefaults(
   defineProps<{
     pdf?: PDFDocumentLoadingTask;
@@ -57,6 +64,7 @@ const props = withDefaults(
     highlightText?: string | string[];
     highlightOptions?: HighlightOptions;
     highlightPages?: number[];
+    partialViewbox?: PartialViewbox
   }>(),
   {
     page: 1,
@@ -188,7 +196,7 @@ function getCurrentCanvas(): HTMLCanvasElement | null {
   return oldCanvas;
 }
 
-function setupCanvas(viewport: PageViewport): HTMLCanvasElement {
+function setupCanvas(viewport: PageViewport, partialViewBox?: PartialViewbox): HTMLCanvasElement {
   let canvas;
   const currentCanvas = getCurrentCanvas()!;
   if (currentCanvas && currentCanvas?.getAttribute("role") === "main") {
@@ -199,17 +207,24 @@ function setupCanvas(viewport: PageViewport): HTMLCanvasElement {
     canvas.setAttribute("dir", "ltr");
   }
 
-  const outputScale = window.devicePixelRatio || 1;
-  canvas.width = Math.floor(viewport.width * outputScale);
-  canvas.height = Math.floor(viewport.height * outputScale);
+  const widthX = partialViewBox?.width ?? 0;
+  const heightY = partialViewBox?.height ?? 0;
 
-  canvas.style.width = `${Math.floor(viewport.width)}px`;
-  canvas.style.height = `${Math.floor(viewport.height)}px`;
+  const outputScale = window.devicePixelRatio || 1;
+  canvas.width = Math.floor(viewport.width * outputScale - (viewport.width * outputScale - outputScale * widthX));
+  canvas.height = Math.floor(viewport.height * outputScale - (viewport.height * outputScale - outputScale * heightY));
+
+  canvas.style.width = `${Math.floor(viewport.width - (viewport.width - widthX))}px`;
+  canvas.style.height = `${Math.floor(viewport.height - (viewport.height - heightY))}px`;
+  canvas.style.marginLeft = `${partialViewBox?.offsetX ?? 0}px`;
+  canvas.style.marginTop = `${partialViewBox?.offsetY ?? 0}px`;
 
   // --scale-factor property
   container.value?.style.setProperty("--scale-factor", `${viewport.scale}`);
   container.value?.style.setProperty("--user-unit", `${viewport.userUnit}`);
   container.value?.style.setProperty("--total-scale-factor", "calc(var(--scale-factor) * var(--user-unit))");
+  container.value?.style.setProperty('width', `${Math.floor(viewport.width)}px`);
+  container.value?.style.setProperty('height', `${Math.floor(viewport.height)}px`);
   // Also setting dimension properties for load layer
   loadingLayer.value!.style.width = `${Math.floor(viewport.width)}px`;
   loadingLayer.value!.style.height = `${Math.floor(viewport.height)}px`;
@@ -233,11 +248,13 @@ function renderPage(pageNum: number) {
       const viewportParams: GetViewportParameters = {
         scale: getScale(page),
         rotation: getRotation((props.rotation || 0) + defaultViewport.rotation),
+        offsetX: - (props.partialViewbox?.offsetX ?? 0),
+        offsetY: - (props.partialViewbox?.offsetY ?? 0),
       };
       const viewport = page.getViewport(viewportParams);
 
       const oldCanvas = getCurrentCanvas();
-      const canvas = setupCanvas(viewport);
+      const canvas = setupCanvas(viewport, props.partialViewbox);
 
       const outputScale = window.devicePixelRatio || 1;
       const transform =
@@ -303,6 +320,7 @@ watch(
     props.page,
     props.hideForms,
     props.intent,
+    props.partialViewbox
   ],
   () => {
     // Props that should dispatch an render task
@@ -336,6 +354,7 @@ defineExpose({
   reload,
   cancel,
   destroy,
+  loading: readonly(loading)
 });
 </script>
 
