@@ -3,8 +3,6 @@
 import * as PDFJS from "pdfjs-dist";
 import { computed, onMounted, onUnmounted, ref, toRaw, watch, readonly } from "vue";
 
-import "pdfjs-dist/web/pdf_viewer.css";
-
 import type {
   PDFDocumentLoadingTask,
   PDFPageProxy,
