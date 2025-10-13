@@ -14,6 +14,7 @@ const { pdf } = usePDF(
 )
 
 beforeAll(async () => {
+  vi.useFakeTimers()
   await vi.waitUntil(() => pdf.value, { timeout: 10000 });
 })
 
@@ -33,6 +34,9 @@ test('Scaling', async () => {
   expect(viewport.width).toBe(612)
 
   await wrapper.setProps({ scale: 2 })
+
+  vi.advanceTimersToNextFrame()
+
   viewport = wrapper.vm.internalProps.viewport
   expect(viewport.width).toBe(612 * 2)
 })
@@ -54,6 +58,9 @@ test('Width and Height', async () => {
   expect(Math.round(viewport.height as number)).toBe(500)
 
   await wrapper.setProps({ width: 500 })
+
+  vi.advanceTimersToNextFrame()
+
   viewport = wrapper.vm.internalProps.viewport
   expect(Math.round(viewport.width as number)).toBe(500)
 })
