@@ -1,7 +1,16 @@
 <!-- eslint-disable no-case-declarations -->
 <script setup lang="ts">
 import * as PDFJS from "pdfjs-dist";
-import { computed, onMounted, onUnmounted, ref, toRaw, watch, readonly } from "vue";
+import {
+  computed,
+  onMounted,
+  onUnmounted,
+  ref,
+  toRaw,
+  watch,
+  readonly,
+  shallowReactive,
+} from "vue";
 
 import "pdfjs-dist/web/pdf_viewer.css";
 
@@ -64,7 +73,8 @@ const props = withDefaults(
     highlightText?: string | string[];
     highlightOptions?: HighlightOptions;
     highlightPages?: number[];
-    partialViewbox?: PartialViewbox
+    partialViewbox?: PartialViewbox;
+    virtualScale?: number;
   }>(),
   {
     page: 1,
@@ -89,12 +99,10 @@ const loadingLayer = ref<HTMLSpanElement>();
 const loading = ref(false);
 let renderTask: RenderTask;
 
-const internalProps = computed(() => {
-  return {
-    viewport: undefined,
-    document: undefined,
-    page: undefined,
-  } as InternalProps;
+const internalProps = shallowReactive<InternalProps>({
+  viewport: undefined,
+  document: undefined,
+  page: undefined,
 });
 const alayerProps = computed(() => {
   return {
@@ -196,7 +204,11 @@ function getCurrentCanvas(): HTMLCanvasElement | null {
   return oldCanvas;
 }
 
-function setupCanvas(viewport: PageViewport, partialViewBox?: PartialViewbox): HTMLCanvasElement {
+function setupCanvas(
+  viewport: PageViewport,
+  virtualViewport?: PageViewport | null,
+  partialViewBox?: PartialViewbox
+): HTMLCanvasElement {
   let canvas;
   const currentCanvas = getCurrentCanvas()!;
   if (currentCanvas && currentCanvas?.getAttribute("role") === "main") {
@@ -211,23 +223,55 @@ function setupCanvas(viewport: PageViewport, partialViewBox?: PartialViewbox): H
   const heightY = partialViewBox?.height ?? viewport.height;
 
   const outputScale = window.devicePixelRatio || 1;
-  canvas.width = Math.floor(viewport.width * outputScale - (viewport.width * outputScale - outputScale * widthX));
-  canvas.height = Math.floor(viewport.height * outputScale - (viewport.height * outputScale - outputScale * heightY));
+  canvas.width = Math.floor(
+    viewport.width * outputScale -
+      (viewport.width * outputScale - outputScale * widthX)
+  );
+  canvas.height = Math.floor(
+    viewport.height * outputScale -
+      (viewport.height * outputScale - outputScale * heightY)
+  );
 
-  canvas.style.width = `${Math.floor(viewport.width - (viewport.width - widthX))}px`;
-  canvas.style.height = `${Math.floor(viewport.height - (viewport.height - heightY))}px`;
+  canvas.style.width = `${Math.floor(
+    viewport.width - (viewport.width - widthX)
+  )}px`;
+  canvas.style.height = `${Math.floor(
+    viewport.height - (viewport.height - heightY)
+  )}px`;
   canvas.style.marginLeft = `${partialViewBox?.offsetX ?? 0}px`;
   canvas.style.marginTop = `${partialViewBox?.offsetY ?? 0}px`;
 
+  if (virtualViewport) {
+    canvas.style.transformOrigin = "top left";
+    canvas.style.transform = `scale(${virtualViewport.scale})`;
+  } else {
+    canvas.style.transform = "";
+  }
+
   // --scale-factor property
-  container.value?.style.setProperty("--scale-factor", `${viewport.scale}`);
-  container.value?.style.setProperty("--user-unit", `${viewport.userUnit}`);
-  container.value?.style.setProperty("--total-scale-factor", "calc(var(--scale-factor) * var(--user-unit))");
-  container.value?.style.setProperty('width', `${Math.floor(viewport.width)}px`);
-  container.value?.style.setProperty('height', `${Math.floor(viewport.height)}px`);
+  container.value?.style.setProperty(
+    "--scale-factor",
+    `${virtualViewport?.scale ?? viewport.scale}`
+  );
+  container.value?.style.setProperty(
+    "--user-unit",
+    `${virtualViewport?.userUnit ?? viewport.userUnit}`
+  );
+  container.value?.style.setProperty(
+    "--total-scale-factor",
+    "calc(var(--scale-factor) * var(--user-unit))"
+  );
+  container.value?.style.setProperty(
+    "width",
+    `${Math.floor(virtualViewport?.width ?? viewport.width)}px`
+  );
+  container.value?.style.setProperty(
+    "height",
+    `${Math.floor(virtualViewport?.height ?? viewport.height)}px`
+  );
   // Also setting dimension properties for load layer
-  loadingLayer.value!.style.width = `${Math.floor(viewport.width)}px`;
-  loadingLayer.value!.style.height = `${Math.floor(viewport.height)}px`;
+  loadingLayer.value!.style.width = `${Math.floor(virtualViewport?.width ?? viewport.width)}px`;
+  loadingLayer.value!.style.height = `${Math.floor(virtualViewport?.height ?? viewport.height)}px`;
   loadingLayer.value!.style.top = "0";
   loadingLayer.value!.style.left = "0";
   loading.value = true;
@@ -245,7 +289,7 @@ function cancelRender() {
 }
 
 function renderPage(pageNum: number) {
-  toRaw(internalProps.value.document)
+  toRaw(internalProps.document)
     ?.getPage(pageNum)
     .then((page) => {
       cancelRender();
@@ -254,18 +298,34 @@ function renderPage(pageNum: number) {
         const defaultViewport = page.getViewport();
         const viewportParams: GetViewportParameters = {
           scale: getScale(page),
-          rotation: getRotation((props.rotation || 0) + defaultViewport.rotation),
-          offsetX: - (props.partialViewbox?.offsetX ?? 0),
-          offsetY: - (props.partialViewbox?.offsetY ?? 0),
+          rotation: getRotation(
+            (props.rotation || 0) + defaultViewport.rotation
+          ),
+          offsetX: -(props.partialViewbox?.offsetX ?? 0),
+          offsetY: -(props.partialViewbox?.offsetY ?? 0),
         };
         const viewport = page.getViewport(viewportParams);
+        let virtualViewport: PageViewport | null = null;
+        if (props.virtualScale) {
+          const virtualViewportParams = page.getViewport({
+            ...viewportParams,
+            scale: props.virtualScale,
+          });
+          virtualViewport = page.getViewport(virtualViewportParams);
+        }
 
         const oldCanvas = getCurrentCanvas();
-        const canvas = setupCanvas(viewport, props.partialViewbox);
+        const canvas = setupCanvas(
+          viewport,
+          virtualViewport,
+          props.partialViewbox
+        );
 
         const outputScale = window.devicePixelRatio || 1;
         const transform =
-          outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined;
+          outputScale !== 1
+            ? [outputScale, 0, 0, outputScale, 0, 0]
+            : undefined;
 
         // Render PDF page into canvas context
         const renderContext: RenderParameters = {
@@ -284,25 +344,29 @@ function renderPage(pageNum: number) {
           canvas.removeAttribute("role");
         }
 
-        internalProps.value.page = page;
-        internalProps.value.viewport = viewport;
+        internalProps.page = page;
+        if (virtualViewport) {
+          internalProps.viewport = virtualViewport;
+        } else {
+          internalProps.viewport = viewport;
+        }
         renderTask = page.render(renderContext);
         renderTask.promise
           .then(() => {
             loading.value = false;
             paintWatermark(viewport.scale);
-            emit("loaded", internalProps.value.viewport!);
+            emit("loaded", internalProps.viewport!);
           })
           .catch(() => {
             // render task cancelled
           });
-      })
+      });
     });
 }
 
 function initDoc(proxy: PDFDocumentLoadingTask) {
   proxy.promise.then(async (document) => {
-    internalProps.value.document = document;
+    internalProps.document = document;
     renderPage(props.page);
   });
 }
@@ -328,7 +392,8 @@ watch(
     props.page,
     props.hideForms,
     props.intent,
-    props.partialViewbox
+    props.partialViewbox,
+    props.virtualScale,
   ],
   () => {
     // Props that should dispatch an render task
@@ -362,7 +427,7 @@ defineExpose({
   reload,
   cancel,
   destroy,
-  loading: readonly(loading)
+  loading: readonly(loading),
 });
 </script>
 
