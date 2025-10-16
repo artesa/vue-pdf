@@ -432,6 +432,11 @@ defineExpose({
 <template>
   <div ref="container" style="position: relative; display: block">
     <canvas dir="ltr" style="display: block" role="main" />
+    <slot
+      name="canvas-overlay"
+      :width="internalProps.viewport?.width"
+      :height="internalProps.viewport?.height"
+    />
     <AnnotationLayer
       v-if="annotationLayer"
       v-bind="{ ...internalProps, ...alayerProps }"
