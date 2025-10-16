@@ -10,15 +10,17 @@ const { pdf } = usePDF(testPdf);
 <template>
   <div style="background-color: black;">
     <VuePDF
-      :scale="4"
-      :partial-viewbox="{
-        offsetX: 100,
-        offsetY: 0,
-        width: 500,
-        height: 500,
-      }"
+      :scale="1"
       :pdf="pdf"
+      :virtual-scale="4"
       text-layer
     />
   </div>
+
+  <!-- :partial-viewbox="{
+        offsetX: 100,
+        offsetY: 0,
+        width: 50,
+        height: 50,
+      }" -->
 </template>

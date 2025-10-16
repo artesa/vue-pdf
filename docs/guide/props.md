@@ -291,3 +291,11 @@ Render the viewport only partial. This can be used to optimize rendering for big
 ```vue
 <VuePDF :pdf="pdf" :partial-viewbox="{ offsetX: 100, offsetY: 100, width: 200, height: 200 }" />
 ```
+
+## virtual-scale
+
+Type: `int` <br />
+Required: `false` <br />
+Default: `undefined`
+
+Renders only the canvas with [scale](#scale), but the text layer or any other layer with the virtual scale value. The canvas gets scaled by css to `virtual-scale` then. Useful if you want to increase the size of the canvas without rendering a high resolution.
