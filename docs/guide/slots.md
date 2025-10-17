@@ -16,7 +16,7 @@ Content to display when page is rendering
 
 ## overlay
 
-Enable to add overlay content
+Enable to add overlay content. This overlay gets placed after all other elements.
 
 ```vue
 <template>
@@ -33,3 +33,7 @@ Enable to add overlay content
 ::: warning
 DO NOT ADD a `<canvas>` element as root of template since it can break the component when page reload on scaling, rotating, etc.
 :::
+
+## canvas-overlay
+
+Same as [overlay](#overlay), but this overlay gets placed between the canvas and the other layers.
