@@ -75,6 +75,7 @@ const props = withDefaults(
     highlightPages?: number[];
     partialViewbox?: PartialViewbox;
     virtualScale?: number;
+    devicePixelRatio?: number;
   }>(),
   {
     page: 1,
@@ -120,6 +121,8 @@ const tlayerProps = computed(() => {
     highlightPages: props.highlightPages,
   };
 });
+
+const devicePixelRation = computed(() => props.devicePixelRatio ?? window.devicePixelRatio ?? 1);
 
 function getWatermarkOptionsWithDefaults(): WatermarkOptions {
   return Object.assign(
@@ -222,7 +225,7 @@ function setupCanvas(
   const widthX = partialViewBox?.width ?? viewport.width;
   const heightY = partialViewBox?.height ?? viewport.height;
 
-  const outputScale = window.devicePixelRatio || 1;
+  const outputScale = devicePixelRation.value;
   canvas.width = Math.floor(
     viewport.width * outputScale -
       (viewport.width * outputScale - outputScale * widthX)
@@ -321,7 +324,7 @@ function renderPage(pageNum: number) {
           props.partialViewbox
         );
 
-        const outputScale = window.devicePixelRatio || 1;
+        const outputScale = devicePixelRation.value;
         const transform =
           outputScale !== 1
             ? [outputScale, 0, 0, outputScale, 0, 0]
@@ -394,6 +397,7 @@ watch(
     props.intent,
     props.partialViewbox,
     props.virtualScale,
+    devicePixelRation.value
   ],
   () => {
     // Props that should dispatch an render task

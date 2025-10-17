@@ -299,3 +299,11 @@ Required: `false` <br />
 Default: `undefined`
 
 Renders only the canvas with [scale](#scale), but the text layer or any other layer with the virtual scale value. The canvas gets scaled by css to `virtual-scale` then. Useful if you want to increase the size of the canvas without rendering a high resolution.
+
+## device-pixel-ratio
+
+Type: `int` <br />
+Required: `false` <br />
+Default: `window.devicePixelRatio`
+
+The internal resolution gets multiplied by the devicePixelRatio value. By default the `window.devicePixelRatio` gets used. With this prop you can override the value.
