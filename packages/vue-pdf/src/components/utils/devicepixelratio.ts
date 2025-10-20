@@ -13,7 +13,7 @@ export function useDevicePixelRatio() {
   );
 
   function handler() {
-    pixelRatio.value = window.devicePixelRatio;
+    if (window.devicePixelRatio !== pixelRatio.value) pixelRatio.value = window.devicePixelRatio;
   }
 
   let mediaQueryList: MediaQueryList | null = null;

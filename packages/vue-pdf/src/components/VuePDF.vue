@@ -274,10 +274,10 @@ function setupCanvas(
     `${Math.floor(virtualViewport?.height ?? viewport.height)}px`
   );
   // Also setting dimension properties for load layer
-  loadingLayer.value!.style.width = `${Math.floor(virtualViewport?.width ?? viewport.width)}px`;
-  loadingLayer.value!.style.height = `${Math.floor(virtualViewport?.height ?? viewport.height)}px`;
-  loadingLayer.value!.style.top = "0";
-  loadingLayer.value!.style.left = "0";
+  loadingLayer.value?.style.setProperty('width', `${Math.floor(virtualViewport?.width ?? viewport.width)}px`);
+  loadingLayer.value?.style.setProperty('height', `${Math.floor(virtualViewport?.height ?? viewport.height)}px`);
+  loadingLayer.value?.style.setProperty('top', '0');
+  loadingLayer.value?.style.setProperty('left', '0');
   loading.value = true;
   return canvas;
 }
