@@ -1,6 +1,6 @@
 {
   "name": "@artesa/vue-pdf",
-  "version": "1.11.5-6",
+  "version": "1.11.5-7",
   "description": "PDF component for Vue 3",
   "author": {
     "name": "Aldo Hernandez",
