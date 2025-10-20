@@ -102,8 +102,8 @@ const emit = defineEmits<{
 
 // Template Refs
 const canvasElement = useTemplateRef('canvasRef');
-const container = useTemplateRef('container');
-const loadingLayer = useTemplateRef('loadingLayer');
+const container = useTemplateRef('containerRef');
+const loadingLayer = useTemplateRef('loadingLayerRef');
 const loading = shallowRef(false);
 let renderTask: RenderTask;
 
@@ -437,7 +437,7 @@ defineExpose({
 </script>
 
 <template>
-  <div ref="container" style="position: relative; display: block">
+  <div ref="containerRef" style="position: relative; display: block">
     <canvas ref="canvasRef" dir="ltr" style="display: block" role="main" />
     <slot
       name="canvas-overlay"
@@ -457,7 +457,7 @@ defineExpose({
       @text-loaded="emit('textLoaded', $event)"
     />
     <XFALayer v-bind="{ ...internalProps }" @xfa-loaded="emit('xfaLoaded')" />
-    <div v-show="loading" ref="loadingLayer" style="position: absolute">
+    <div v-show="loading" ref="loadingLayerRef" style="position: absolute">
       <slot />
     </div>
     <slot
