@@ -38,6 +38,8 @@ import AnnotationLayer from "./layers/AnnotationLayer.vue";
 import TextLayer from "./layers/TextLayer.vue";
 import XFALayer from "./layers/XFALayer.vue";
 
+import { useDevicePixelRatio } from './utils/devicepixelratio';
+
 interface InternalProps {
   page: PDFPageProxy | undefined;
   document: PDFDocumentProxy | undefined;
@@ -122,7 +124,8 @@ const tlayerProps = computed(() => {
   };
 });
 
-const devicePixelRation = computed(() => props.devicePixelRatio ?? window.devicePixelRatio ?? 1);
+const { pixelRatio } = useDevicePixelRatio();
+const devicePixelRation = computed(() => props.devicePixelRatio ?? pixelRatio.value);
 
 function getWatermarkOptionsWithDefaults(): WatermarkOptions {
   return Object.assign(
