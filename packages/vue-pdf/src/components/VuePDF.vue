@@ -5,11 +5,12 @@ import {
   computed,
   onMounted,
   onUnmounted,
-  ref,
   toRaw,
   watch,
   readonly,
   shallowReactive,
+  useTemplateRef,
+  shallowRef
 } from "vue";
 
 import "pdfjs-dist/web/pdf_viewer.css";
@@ -78,12 +79,14 @@ const props = withDefaults(
     partialViewbox?: PartialViewbox;
     virtualScale?: number;
     devicePixelRatio?: number;
+    alpha?: boolean;
   }>(),
   {
     page: 1,
     scale: 1,
     intent: "display",
     autoDestroy: false,
+    alpha: true,
   }
 );
 
@@ -97,9 +100,10 @@ const emit = defineEmits<{
 }>();
 
 // Template Refs
-const container = ref<HTMLSpanElement>();
-const loadingLayer = ref<HTMLSpanElement>();
-const loading = ref(false);
+const canvasElement = useTemplateRef('canvasRef');
+const container = useTemplateRef('container');
+const loadingLayer = useTemplateRef('loadingLayer');
+const loading = shallowRef(false);
 let renderTask: RenderTask;
 
 const internalProps = shallowReactive<InternalProps>({
@@ -169,7 +173,7 @@ function getScale(page: PDFPageProxy): number {
 function paintWatermark(zoomRatio = 1.0) {
   if (!props.watermarkText) return;
 
-  const canvas = getCurrentCanvas();
+  const canvas = canvasElement.value;
   if (!canvas) return;
 
   const ctx = canvas.getContext("2d");
@@ -202,28 +206,12 @@ function paintWatermark(zoomRatio = 1.0) {
   }
 }
 
-function getCurrentCanvas(): HTMLCanvasElement | null {
-  let oldCanvas = null;
-  container.value?.childNodes.forEach((el) => {
-    if ((el as HTMLElement).tagName === "CANVAS") oldCanvas = el;
-  });
-  return oldCanvas;
-}
-
 function setupCanvas(
   viewport: PageViewport,
   virtualViewport?: PageViewport | null,
   partialViewBox?: PartialViewbox
 ): HTMLCanvasElement {
-  let canvas;
-  const currentCanvas = getCurrentCanvas()!;
-  if (currentCanvas && currentCanvas?.getAttribute("role") === "main") {
-    canvas = currentCanvas;
-  } else {
-    canvas = document.createElement("canvas");
-    canvas.style.display = "block";
-    canvas.setAttribute("dir", "ltr");
-  }
+  const canvas = canvasElement.value!;
 
   const widthX = partialViewBox?.width ?? viewport.width;
   const heightY = partialViewBox?.height ?? viewport.height;
@@ -320,7 +308,6 @@ function renderPage(pageNum: number) {
           virtualViewport = page.getViewport(virtualViewportParams);
         }
 
-        const oldCanvas = getCurrentCanvas();
         const canvas = setupCanvas(
           viewport,
           virtualViewport,
@@ -333,9 +320,17 @@ function renderPage(pageNum: number) {
             ? [outputScale, 0, 0, outputScale, 0, 0]
             : undefined;
 
+        const canvasContext = canvas.getContext('2d', { alpha: props.alpha });
+
+        if (!canvasContext) {
+          loading.value = false;
+          return;
+        }
+
         // Render PDF page into canvas context
         const renderContext: RenderParameters = {
-          canvas: canvas,
+          canvasContext: canvasContext,
+          canvas,
           viewport,
           annotationMode: props.hideForms
             ? PDFJS.AnnotationMode.ENABLE
@@ -343,12 +338,6 @@ function renderPage(pageNum: number) {
           transform,
           intent: props.intent,
         };
-
-        if (canvas?.getAttribute("role") !== "main") {
-          if (oldCanvas) container.value?.replaceChild(canvas, oldCanvas);
-        } else {
-          canvas.removeAttribute("role");
-        }
 
         internalProps.page = page;
         if (virtualViewport) {
@@ -413,6 +402,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  cancelRender();
   // Abort all network process and terminates the worker
   if (props.autoDestroy) props.pdf?.destroy();
 });
@@ -440,7 +430,7 @@ defineExpose({
 
 <template>
   <div ref="container" style="position: relative; display: block">
-    <canvas dir="ltr" style="display: block" role="main" />
+    <canvas ref="canvasRef" dir="ltr" style="display: block" role="main" />
     <slot
       name="canvas-overlay"
       :width="internalProps.viewport?.width"
