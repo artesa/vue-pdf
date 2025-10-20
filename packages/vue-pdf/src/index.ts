@@ -3,7 +3,7 @@ import VuePDF from './components/VuePDF.vue'
 
 export const VuePDFPlugin: Plugin = {
   install(Vue) {
-    Vue.component(VuePDF.name, VuePDF)
+    Vue.component(VuePDF.name!, VuePDF)
   },
 }
 
