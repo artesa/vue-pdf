@@ -10,7 +10,7 @@ const { pdf } = usePDF(testPdf);
 <template>
   <div style="background-color: black;">
     <VuePDF
-      :scale="1"
+      :scale="0.5"
       :pdf="pdf"
       :virtual-scale="4"
       text-layer
