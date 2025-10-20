@@ -10,7 +10,8 @@ import {
   readonly,
   shallowReactive,
   useTemplateRef,
-  shallowRef
+  shallowRef,
+  onBeforeUnmount
 } from "vue";
 
 import "pdfjs-dist/web/pdf_viewer.css";
@@ -399,6 +400,13 @@ watch(
 
 onMounted(() => {
   if (props.pdf !== undefined) initDoc(props.pdf);
+});
+
+onBeforeUnmount(() => {
+  if (canvasElement.value) {
+    canvasElement.value.width = 0;
+    canvasElement.value.height = 0;
+  }
 });
 
 onUnmounted(() => {
