@@ -246,7 +246,7 @@ function setupCanvas(
 
   if (virtualViewport) {
     canvas.style.transformOrigin = "top left";
-    canvas.style.transform = `scale(${virtualViewport.scale})`;
+    canvas.style.transform = `scale(${virtualViewport.scale * (1 / viewport.scale)})`;
   } else {
     canvas.style.transform = "";
   }
