@@ -407,6 +407,7 @@ onBeforeUnmount(() => {
     canvasElement.value.width = 0;
     canvasElement.value.height = 0;
   }
+  cancelRender();
   if (internalProps.page) {
     internalProps.page.cleanup();
     internalProps.page = undefined;
@@ -420,7 +421,6 @@ onBeforeUnmount(() => {
 });
 
 onUnmounted(() => {
-  cancelRender();
   // Abort all network process and terminates the worker
   if (props.autoDestroy) props.pdf?.destroy();
 });
