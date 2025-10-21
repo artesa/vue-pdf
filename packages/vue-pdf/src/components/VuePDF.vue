@@ -407,6 +407,16 @@ onBeforeUnmount(() => {
     canvasElement.value.width = 0;
     canvasElement.value.height = 0;
   }
+  if (internalProps.page) {
+    internalProps.page.cleanup();
+    internalProps.page = undefined;
+  }
+  if (internalProps.document) {
+    internalProps.document = undefined;
+  }
+  if (internalProps.viewport) {
+    internalProps.viewport = undefined;
+  }
 });
 
 onUnmounted(() => {
