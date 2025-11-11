@@ -324,27 +324,25 @@ function viewportParamsForPage(page: PDFPageProxy) {
   };
 }
 
-async function renderVirtualViewport(pageNum: number, page?: PDFPageProxy) {
+function renderVirtualViewport(pageNum: number) {
   if (!props.virtualScale) {
     virtualViewportScale.value = undefined;
     return;
   }
 
-  const pageToUse =
-    page ?? (await toRaw(internalProps.document)?.getPage(pageNum));
+  const page = internalProps.page;
 
-  if (!pageToUse) {
-    virtualViewportScale.value = undefined;
+  if (!page) {
     return;
   }
 
-  const { viewportParams, viewport } = viewportParamsForPage(pageToUse);
+  const { viewportParams, viewport } = viewportParamsForPage(page);
 
-  const virtualViewportParams = pageToUse.getViewport({
+  const virtualViewportParams = page.getViewport({
     ...viewportParams,
     scale: props.virtualScale,
   });
-  const virtualViewport = pageToUse.getViewport(virtualViewportParams);
+  const virtualViewport = page.getViewport(virtualViewportParams);
 
   virtualViewportScale.value = virtualViewport.scale * (1 / viewport.scale);
 
@@ -358,7 +356,10 @@ async function renderPage(pageNum: number) {
   if (!doc) return;
 
   const page = await doc.getPage(pageNum);
-  const virtualViewport = await renderVirtualViewport(pageNum, page);
+
+  internalProps.page = toRaw(page);
+
+  const virtualViewport = renderVirtualViewport(pageNum);
 
   cancelRender();
 
@@ -394,11 +395,10 @@ async function renderPage(pageNum: number) {
       intent: props.intent,
     };
 
-    internalProps.page = page;
     if (virtualViewport) {
-      internalProps.viewport = virtualViewport;
+      internalProps.viewport = toRaw(virtualViewport);
     } else {
-      internalProps.viewport = viewport;
+      internalProps.viewport = toRaw(viewport);
     }
     renderTask = page.render(renderContext);
     renderTask.promise
@@ -415,7 +415,7 @@ async function renderPage(pageNum: number) {
 
 function initDoc(proxy: PDFDocumentLoadingTask) {
   proxy.promise.then(async (document) => {
-    internalProps.document = document;
+    internalProps.document = toRaw(document);
     renderPage(props.page);
   });
 }
@@ -453,7 +453,7 @@ watch(
 watch(
   () => props.virtualScale,
   () => {
-    renderVirtualViewport(props.page);
+    internalProps.viewport = toRaw(renderVirtualViewport(props.page));
   }
 );
 
