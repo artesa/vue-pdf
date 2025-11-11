@@ -8,14 +8,17 @@ import { shallowRef } from "vue";
 const { pdf } = usePDF(testPdf);
 
 const scale = shallowRef(1);
+const realScale = shallowRef(0.5);
 </script>
 
 <template>
-  <button @click="scale += 0.1">Inc</button>
-  <button @click="scale -= 0.1">Dec</button>
+  <button @click="scale += 0.1">Inc V</button>
+  <button @click="scale -= 0.1">Dec V</button>
+  <button @click="realScale += 0.1">Inc R</button>
+  <button @click="realScale -= 0.1">Dec R</button>
   <div style="background-color: black;">
     <VuePDF
-      :scale="0.5"
+      :scale="realScale"
       :pdf="pdf"
       :virtual-scale="scale"
       text-layer

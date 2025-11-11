@@ -11,7 +11,7 @@ import {
   shallowReactive,
   useTemplateRef,
   shallowRef,
-  onBeforeUnmount
+  onBeforeUnmount,
 } from "vue";
 
 import type {
@@ -38,7 +38,7 @@ import AnnotationLayer from "./layers/AnnotationLayer.vue";
 import TextLayer from "./layers/TextLayer.vue";
 import XFALayer from "./layers/XFALayer.vue";
 
-import { useDevicePixelRatio } from './utils/devicepixelratio';
+import { useDevicePixelRatio } from "./utils/devicepixelratio";
 
 interface InternalProps {
   page: PDFPageProxy | undefined;
@@ -99,11 +99,13 @@ const emit = defineEmits<{
 }>();
 
 // Template Refs
-const canvasElement = useTemplateRef('canvasRef');
-const container = useTemplateRef('containerRef');
-const loadingLayer = useTemplateRef('loadingLayerRef');
+const canvasElement = useTemplateRef("canvasRef");
+const container = useTemplateRef("containerRef");
+const loadingLayer = useTemplateRef("loadingLayerRef");
 const loading = shallowRef(false);
 let renderTask: RenderTask;
+
+const virtualViewportScale = shallowRef<number | undefined>(undefined);
 
 const internalProps = shallowReactive<InternalProps>({
   viewport: undefined,
@@ -128,7 +130,9 @@ const tlayerProps = computed(() => {
 });
 
 const { pixelRatio } = useDevicePixelRatio();
-const devicePixelRation = computed(() => props.devicePixelRatio ?? pixelRatio.value);
+const devicePixelRation = computed(
+  () => props.devicePixelRatio ?? pixelRatio.value
+);
 
 function getWatermarkOptionsWithDefaults(): WatermarkOptions {
   return Object.assign(
@@ -225,14 +229,36 @@ function setupCanvas(
       (viewport.height * outputScale - outputScale * heightY)
   );
 
-  const virtualScaleFactor = virtualViewport ? (virtualViewport.scale * (1 / viewport.scale)) : 1;
+  setupCanvasStyle(viewport, virtualViewport, partialViewBox);
 
-  canvas.style.width = `${Math.floor(
-    (viewport.width - (viewport.width - widthX)) * virtualScaleFactor
-  )}px`;
-  canvas.style.height = `${Math.floor(
-    (viewport.height - (viewport.height - heightY)) * virtualScaleFactor
-  )}px`;
+  loading.value = true;
+  return canvas;
+}
+
+function setupCanvasStyle(
+  viewport: PageViewport,
+  virtualViewport?: PageViewport | null,
+  partialViewBox?: PartialViewbox
+) {
+  const canvas = canvasElement.value!;
+  const widthX = partialViewBox?.width ?? viewport.width;
+  const heightY = partialViewBox?.height ?? viewport.height;
+
+  const virtualScaleFactor = virtualViewport
+    ? virtualViewport.scale * (1 / viewport.scale)
+    : 1;
+
+  container.value?.style.setProperty(
+    "--virtual-scale-factor",
+    `${virtualScaleFactor}`
+  );
+
+  canvas.style.width = `calc(${Math.floor(
+    viewport.width - (viewport.width - widthX)
+  )}px * var(--virtual-scale-factor, 1))`;
+  canvas.style.height = `calc(${Math.floor(
+    viewport.height - (viewport.height - heightY)
+  )}px * var(--virtual-scale-factor, 1))`;
   canvas.style.marginLeft = `${partialViewBox?.offsetX ?? 0}px`;
   canvas.style.marginTop = `${partialViewBox?.offsetY ?? 0}px`;
 
@@ -258,12 +284,16 @@ function setupCanvas(
     `${Math.floor(virtualViewport?.height ?? viewport.height)}px`
   );
   // Also setting dimension properties for load layer
-  loadingLayer.value?.style.setProperty('width', `${Math.floor(virtualViewport?.width ?? viewport.width)}px`);
-  loadingLayer.value?.style.setProperty('height', `${Math.floor(virtualViewport?.height ?? viewport.height)}px`);
-  loadingLayer.value?.style.setProperty('top', '0');
-  loadingLayer.value?.style.setProperty('left', '0');
-  loading.value = true;
-  return canvas;
+  loadingLayer.value?.style.setProperty(
+    "width",
+    `${Math.floor(virtualViewport?.width ?? viewport.width)}px`
+  );
+  loadingLayer.value?.style.setProperty(
+    "height",
+    `${Math.floor(virtualViewport?.height ?? viewport.height)}px`
+  );
+  loadingLayer.value?.style.setProperty("top", "0");
+  loadingLayer.value?.style.setProperty("left", "0");
 }
 
 let animationFrame: ReturnType<typeof requestAnimationFrame> | null = null;
@@ -276,80 +306,106 @@ function cancelRender() {
   if (renderTask) renderTask.cancel();
 }
 
-function renderPage(pageNum: number) {
-  toRaw(internalProps.document)
-    ?.getPage(pageNum)
-    .then((page) => {
-      cancelRender();
+function viewportParamsForPage(page: PDFPageProxy) {
+  const defaultViewport = page.getViewport();
+  const viewportParams: GetViewportParameters = {
+    scale: getScale(page),
+    rotation: getRotation((props.rotation || 0) + defaultViewport.rotation),
+    offsetX: -(props.partialViewbox?.offsetX ?? 0),
+    offsetY: -(props.partialViewbox?.offsetY ?? 0),
+  };
+  const viewport = page.getViewport(viewportParams);
+  return {
+    viewport,
+    defaultViewport,
+    viewportParams,
+  };
+}
 
-      animationFrame = requestAnimationFrame(() => {
-        const defaultViewport = page.getViewport();
-        const viewportParams: GetViewportParameters = {
-          scale: getScale(page),
-          rotation: getRotation(
-            (props.rotation || 0) + defaultViewport.rotation
-          ),
-          offsetX: -(props.partialViewbox?.offsetX ?? 0),
-          offsetY: -(props.partialViewbox?.offsetY ?? 0),
-        };
-        const viewport = page.getViewport(viewportParams);
-        let virtualViewport: PageViewport | null = null;
-        if (props.virtualScale) {
-          const virtualViewportParams = page.getViewport({
-            ...viewportParams,
-            scale: props.virtualScale,
-          });
-          virtualViewport = page.getViewport(virtualViewportParams);
-        }
+async function renderVirtualViewport(pageNum: number, page?: PDFPageProxy) {
+  if (!props.virtualScale) {
+    virtualViewportScale.value = undefined;
+    return;
+  }
 
-        const canvas = setupCanvas(
-          viewport,
-          virtualViewport,
-          props.partialViewbox
-        );
+  const pageToUse =
+    page ?? (await toRaw(internalProps.document)?.getPage(pageNum));
 
-        const outputScale = devicePixelRation.value;
-        const transform =
-          outputScale !== 1
-            ? [outputScale, 0, 0, outputScale, 0, 0]
-            : undefined;
+  if (!pageToUse) {
+    virtualViewportScale.value = undefined;
+    return;
+  }
 
-        const canvasContext = canvas.getContext('2d', { alpha: props.alpha });
+  const { viewportParams, viewport } = viewportParamsForPage(pageToUse);
 
-        if (!canvasContext) {
-          loading.value = false;
-          return;
-        }
+  const virtualViewportParams = pageToUse.getViewport({
+    ...viewportParams,
+    scale: props.virtualScale,
+  });
+  const virtualViewport = pageToUse.getViewport(virtualViewportParams);
 
-        // Render PDF page into canvas context
-        const renderContext: RenderParameters = {
-          canvasContext: canvasContext,
-          canvas,
-          viewport,
-          annotationMode: props.hideForms
-            ? PDFJS.AnnotationMode.ENABLE
-            : PDFJS.AnnotationMode.ENABLE_FORMS,
-          transform,
-          intent: props.intent,
-        };
+  virtualViewportScale.value = virtualViewport.scale * (1 / viewport.scale);
 
-        internalProps.page = page;
-        if (virtualViewport) {
-          internalProps.viewport = virtualViewport;
-        } else {
-          internalProps.viewport = viewport;
-        }
-        renderTask = page.render(renderContext);
-        renderTask.promise
-          .then(() => {
-            loading.value = false;
-            paintWatermark(viewport.scale);
-            emit("loaded", internalProps.viewport!);
-          })
-          .catch(() => {
-            // render task cancelled
-          });
-      });
+  setupCanvasStyle(viewport, virtualViewport, props.partialViewbox);
+
+  return virtualViewport;
+}
+
+async function renderPage(pageNum: number) {
+  const doc = toRaw(internalProps.document);
+  if (!doc) return;
+
+  const page = await doc.getPage(pageNum);
+  const virtualViewport = await renderVirtualViewport(pageNum, page);
+
+  cancelRender();
+
+  const { viewport } = viewportParamsForPage(page);
+
+  const canvas = setupCanvas(
+    viewport,
+    virtualViewport ?? null,
+    props.partialViewbox
+  );
+
+  const outputScale = devicePixelRation.value;
+  const transform =
+    outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined;
+
+  const canvasContext = canvas.getContext("2d", { alpha: props.alpha });
+
+  if (!canvasContext) {
+    loading.value = false;
+    return;
+  }
+
+  // Render PDF page into canvas context
+  const renderContext: RenderParameters = {
+    canvasContext: canvasContext,
+    canvas,
+    viewport,
+    annotationMode: props.hideForms
+      ? PDFJS.AnnotationMode.ENABLE
+      : PDFJS.AnnotationMode.ENABLE_FORMS,
+    transform,
+    intent: props.intent,
+  };
+
+  internalProps.page = page;
+  if (virtualViewport) {
+    internalProps.viewport = virtualViewport;
+  } else {
+    internalProps.viewport = viewport;
+  }
+  renderTask = page.render(renderContext);
+  renderTask.promise
+    .then(() => {
+      loading.value = false;
+      paintWatermark(viewport.scale);
+      emit("loaded", internalProps.viewport!);
+    })
+    .catch(() => {
+      // render task cancelled
     });
 }
 
@@ -382,12 +438,18 @@ watch(
     props.hideForms,
     props.intent,
     props.partialViewbox,
-    props.virtualScale,
-    devicePixelRation.value
+    devicePixelRation.value,
   ],
   () => {
     // Props that should dispatch an render task
     renderPage(props.page);
+  }
+);
+
+watch(
+  () => props.virtualScale,
+  () => {
+    renderVirtualViewport(props.page);
   }
 );
 
