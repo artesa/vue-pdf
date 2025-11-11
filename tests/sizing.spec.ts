@@ -33,9 +33,11 @@ test('Scaling', async () => {
   let viewport = wrapper.vm.internalProps.viewport
   expect(viewport.width).toBe(612)
 
-  await wrapper.setProps({ scale: 2 })
-
-  vi.advanceTimersToNextFrame()
+  await vi.waitFor(() => {
+    return new Promise((resolve) => {
+      wrapper.setProps({ scale: 2, onLoaded: () => resolve(true) })
+    })
+  });
 
   viewport = wrapper.vm.internalProps.viewport
   expect(viewport.width).toBe(612 * 2)
@@ -57,7 +59,11 @@ test('Width and Height', async () => {
   let viewport = wrapper.vm.internalProps.viewport
   expect(Math.round(viewport.height as number)).toBe(500)
 
-  await wrapper.setProps({ width: 500 })
+  await vi.waitFor(() => {
+    return new Promise((resolve) => {
+      wrapper.setProps({ width: 500, onLoaded: () => resolve(true) })
+    })
+  });
 
   vi.advanceTimersToNextFrame()
 
