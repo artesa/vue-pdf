@@ -360,53 +360,55 @@ async function renderPage(pageNum: number) {
 
   cancelRender();
 
-  const { viewport } = viewportParamsForPage(page);
+  animationFrame = requestAnimationFrame(() => {
+    const { viewport } = viewportParamsForPage(page);
 
-  const canvas = setupCanvas(
-    viewport,
-    virtualViewport ?? null,
-    props.partialViewbox
-  );
+    const canvas = setupCanvas(
+      viewport,
+      virtualViewport ?? null,
+      props.partialViewbox
+    );
 
-  const outputScale = devicePixelRation.value;
-  const transform =
-    outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined;
+    const outputScale = devicePixelRation.value;
+    const transform =
+      outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined;
 
-  const canvasContext = canvas.getContext("2d", { alpha: props.alpha });
+    const canvasContext = canvas.getContext("2d", { alpha: props.alpha });
 
-  if (!canvasContext) {
-    loading.value = false;
-    return;
-  }
-
-  // Render PDF page into canvas context
-  const renderContext: RenderParameters = {
-    canvasContext: canvasContext,
-    canvas,
-    viewport,
-    annotationMode: props.hideForms
-      ? PDFJS.AnnotationMode.ENABLE
-      : PDFJS.AnnotationMode.ENABLE_FORMS,
-    transform,
-    intent: props.intent,
-  };
-
-  internalProps.page = page;
-  if (virtualViewport) {
-    internalProps.viewport = virtualViewport;
-  } else {
-    internalProps.viewport = viewport;
-  }
-  renderTask = page.render(renderContext);
-  renderTask.promise
-    .then(() => {
+    if (!canvasContext) {
       loading.value = false;
-      paintWatermark(viewport.scale);
-      emit("loaded", internalProps.viewport!);
-    })
-    .catch(() => {
-      // render task cancelled
-    });
+      return;
+    }
+
+    // Render PDF page into canvas context
+    const renderContext: RenderParameters = {
+      canvasContext: canvasContext,
+      canvas,
+      viewport,
+      annotationMode: props.hideForms
+        ? PDFJS.AnnotationMode.ENABLE
+        : PDFJS.AnnotationMode.ENABLE_FORMS,
+      transform,
+      intent: props.intent,
+    };
+
+    internalProps.page = page;
+    if (virtualViewport) {
+      internalProps.viewport = virtualViewport;
+    } else {
+      internalProps.viewport = viewport;
+    }
+    renderTask = page.render(renderContext);
+    renderTask.promise
+      .then(() => {
+        loading.value = false;
+        paintWatermark(viewport.scale);
+        emit("loaded", internalProps.viewport!);
+      })
+      .catch(() => {
+        // render task cancelled
+      });
+  });
 }
 
 function initDoc(proxy: PDFDocumentLoadingTask) {
