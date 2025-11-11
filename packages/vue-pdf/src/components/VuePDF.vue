@@ -225,21 +225,16 @@ function setupCanvas(
       (viewport.height * outputScale - outputScale * heightY)
   );
 
+  const virtualScaleFactor = virtualViewport ? (virtualViewport.scale * (1 / viewport.scale)) : 1;
+
   canvas.style.width = `${Math.floor(
-    viewport.width - (viewport.width - widthX)
+    (viewport.width - (viewport.width - widthX)) * virtualScaleFactor
   )}px`;
   canvas.style.height = `${Math.floor(
-    viewport.height - (viewport.height - heightY)
+    (viewport.height - (viewport.height - heightY)) * virtualScaleFactor
   )}px`;
   canvas.style.marginLeft = `${partialViewBox?.offsetX ?? 0}px`;
   canvas.style.marginTop = `${partialViewBox?.offsetY ?? 0}px`;
-
-  if (virtualViewport) {
-    canvas.style.transformOrigin = "top left";
-    canvas.style.transform = `scale(${virtualViewport.scale * (1 / viewport.scale)})`;
-  } else {
-    canvas.style.transform = "";
-  }
 
   // --scale-factor property
   container.value?.style.setProperty(
