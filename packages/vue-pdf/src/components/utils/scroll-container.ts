@@ -1,3 +1,13 @@
+// Detect Safari iOS for special handling
+const isSafariIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+
+/**
+ * Round to avoid sub-pixel drift on Safari iOS
+ */
+function safariRound(value: number): number {
+  return isSafariIOS ? Math.round(value * 100) / 100 : value;
+}
+
 /**
  * Get the current scroll position of a scroll container as percentages
  * @param container The scroll container
@@ -8,8 +18,9 @@ export function getScrollPosition(container: HTMLElement) {
   const realContentWidth = container.scrollWidth;
   const realContentHeight = container.scrollHeight;
 
-  const scrollPositionX = container.scrollLeft;
-  const scrollPositionY = container.scrollTop;
+  // Round scroll positions to avoid Safari iOS sub-pixel issues
+  const scrollPositionX = safariRound(container.scrollLeft);
+  const scrollPositionY = safariRound(container.scrollTop);
 
   // viewport width/height without scrollbars
   const containerViewportWidth = container.clientWidth;
@@ -58,8 +69,27 @@ export function restoreScrollPosition(
   const centerOfScrollBarY = prevScrollData.scrollPercentY * realContentHeight;
 
   // Calculate scroll positions by subtracting half the viewport size
-  const scrollPositionX = centerOfScrollBarX - containerViewportWidth / 2;
-  const scrollPositionY = centerOfScrollBarY - containerViewportHeight / 2;
+  let scrollPositionX = centerOfScrollBarX - containerViewportWidth / 2;
+  let scrollPositionY = centerOfScrollBarY - containerViewportHeight / 2;
 
-  container.scrollTo(scrollPositionX, scrollPositionY);
+  // Round scroll positions for Safari iOS to prevent sub-pixel drift
+  scrollPositionX = safariRound(scrollPositionX);
+  scrollPositionY = safariRound(scrollPositionY);
+
+  // Use requestAnimationFrame on Safari iOS to ensure smooth scrolling and handle momentum scrolling
+  if (isSafariIOS) {
+    // Stop any ongoing momentum scrolling first
+    (container.style as any).webkitOverflowScrolling = 'auto';
+
+    requestAnimationFrame(() => {
+      container.scrollTo(scrollPositionX, scrollPositionY);
+
+      // Re-enable momentum scrolling after positioning
+      requestAnimationFrame(() => {
+        (container.style as any).webkitOverflowScrolling = 'touch';
+      });
+    });
+  } else {
+    container.scrollTo(scrollPositionX, scrollPositionY);
+  }
 }
