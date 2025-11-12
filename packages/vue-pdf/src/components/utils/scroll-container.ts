@@ -1,5 +1,3 @@
-const PRECISION_FACTOR = 1000000;
-
 /**
  * Get the current scroll position of a scroll container as percentages
  * @param container The scroll container
@@ -17,23 +15,13 @@ export function getScrollPosition(container: HTMLElement) {
   const containerViewportWidth = container.clientWidth;
   const containerViewportHeight = container.clientHeight;
 
-  const centerOfScrollBarX =
-    scrollPositionX +
-    Math.floor(
-      (containerViewportWidth * PRECISION_FACTOR) / (2 * PRECISION_FACTOR)
-    );
-  const centerOfScrollBarY =
-    scrollPositionY +
-    Math.floor(
-      (containerViewportHeight * PRECISION_FACTOR) / (2 * PRECISION_FACTOR)
-    );
+  // Calculate center of viewport relative to content
+  const centerOfScrollBarX = scrollPositionX + containerViewportWidth / 2;
+  const centerOfScrollBarY = scrollPositionY + containerViewportHeight / 2;
 
-  const scrollPercentX =
-    (centerOfScrollBarX * PRECISION_FACTOR) /
-    (realContentWidth * PRECISION_FACTOR);
-  const scrollPercentY =
-    (centerOfScrollBarY * PRECISION_FACTOR) /
-    (realContentHeight * PRECISION_FACTOR);
+  // Calculate scroll percentages without unnecessary precision factors
+  const scrollPercentX = centerOfScrollBarX / realContentWidth;
+  const scrollPercentY = centerOfScrollBarY / realContentHeight;
 
   return {
     scrollPercentX,
@@ -65,24 +53,13 @@ export function restoreScrollPosition(
     containerViewportWidth,
   } = getScrollPosition(container);
 
-  const centerOfScrollBarX =
-    (prevScrollData.scrollPercentX *
-      PRECISION_FACTOR *
-      (realContentWidth * PRECISION_FACTOR)) /
-    (PRECISION_FACTOR * PRECISION_FACTOR);
+  // Calculate new center positions based on the stored percentages
+  const centerOfScrollBarX = prevScrollData.scrollPercentX * realContentWidth;
+  const centerOfScrollBarY = prevScrollData.scrollPercentY * realContentHeight;
 
-  const centerOfScrollBarY =
-    (prevScrollData.scrollPercentY *
-      PRECISION_FACTOR *
-      (realContentHeight * PRECISION_FACTOR)) /
-    (PRECISION_FACTOR * PRECISION_FACTOR);
-
-  const scrollPositionX =
-    centerOfScrollBarX -
-    (containerViewportWidth * PRECISION_FACTOR) / (2 * PRECISION_FACTOR);
-  const scrollPositionY =
-    centerOfScrollBarY -
-    (containerViewportHeight * PRECISION_FACTOR) / (2 * PRECISION_FACTOR);
+  // Calculate scroll positions by subtracting half the viewport size
+  const scrollPositionX = centerOfScrollBarX - containerViewportWidth / 2;
+  const scrollPositionY = centerOfScrollBarY - containerViewportHeight / 2;
 
   container.scrollTo(scrollPositionX, scrollPositionY);
 }
