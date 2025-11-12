@@ -1,7 +1,3 @@
-// Detect Safari iOS for special handling
-const isSafariIOS =
-  /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
-
 /**
  * Get the current scroll position of a scroll container as percentages
  * @param container The scroll container
@@ -71,27 +67,9 @@ export async function restoreScrollPosition(
   const scrollPositionX = centerOfScrollBarX - containerViewportWidth / 2;
   const scrollPositionY = centerOfScrollBarY - containerViewportHeight / 2;
 
-  // Use requestAnimationFrame on Safari iOS to ensure smooth scrolling and handle momentum scrolling
-  if (isSafariIOS) {
-    // Stop any ongoing momentum scrolling first
-    (container.style as any).webkitOverflowScrolling = "auto";
-
-    await animationFramePromise();
-
-    container.scrollTo({
-      top: scrollPositionY,
-      left: scrollPositionX,
-      behavior: "instant",
-    });
-
-    await animationFramePromise();
-
-    (container.style as any).webkitOverflowScrolling = "touch";
-  } else {
-    container.scrollTo({
-      top: scrollPositionY,
-      left: scrollPositionX,
-      behavior: "instant",
-    });
-  }
+  container.scrollTo({
+    top: scrollPositionY,
+    left: scrollPositionX,
+    behavior: "instant",
+  });
 }
