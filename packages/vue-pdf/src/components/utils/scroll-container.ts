@@ -1,12 +1,6 @@
 // Detect Safari iOS for special handling
-const isSafariIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
-
-/**
- * Round to avoid sub-pixel drift on Safari iOS
- */
-function safariRound(value: number): number {
-  return isSafariIOS ? Math.round(value * 100) / 100 : value;
-}
+const isSafariIOS =
+  /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
 
 /**
  * Get the current scroll position of a scroll container as percentages
@@ -19,8 +13,8 @@ export function getScrollPosition(container: HTMLElement) {
   const realContentHeight = container.scrollHeight;
 
   // Round scroll positions to avoid Safari iOS sub-pixel issues
-  const scrollPositionX = safariRound(container.scrollLeft);
-  const scrollPositionY = safariRound(container.scrollTop);
+  const scrollPositionX = container.scrollLeft;
+  const scrollPositionY = container.scrollTop;
 
   // viewport width/height without scrollbars
   const containerViewportWidth = container.clientWidth;
@@ -48,12 +42,17 @@ export function getScrollPosition(container: HTMLElement) {
   };
 }
 
+const animationFramePromise = () =>
+  new Promise<Parameters<FrameRequestCallback>[0]>((resolve) =>
+    requestAnimationFrame(resolve)
+  );
+
 /**
  * Restore the scroll position of a scroll container from previously captured scroll data
  * @param container The scroll container
  * @param prevScrollData Previous captured scroll data with `getScrollPosition()`
  */
-export function restoreScrollPosition(
+export async function restoreScrollPosition(
   container: HTMLElement,
   prevScrollData: ReturnType<typeof getScrollPosition>
 ) {
@@ -69,27 +68,30 @@ export function restoreScrollPosition(
   const centerOfScrollBarY = prevScrollData.scrollPercentY * realContentHeight;
 
   // Calculate scroll positions by subtracting half the viewport size
-  let scrollPositionX = centerOfScrollBarX - containerViewportWidth / 2;
-  let scrollPositionY = centerOfScrollBarY - containerViewportHeight / 2;
-
-  // Round scroll positions for Safari iOS to prevent sub-pixel drift
-  scrollPositionX = safariRound(scrollPositionX);
-  scrollPositionY = safariRound(scrollPositionY);
+  const scrollPositionX = centerOfScrollBarX - containerViewportWidth / 2;
+  const scrollPositionY = centerOfScrollBarY - containerViewportHeight / 2;
 
   // Use requestAnimationFrame on Safari iOS to ensure smooth scrolling and handle momentum scrolling
   if (isSafariIOS) {
     // Stop any ongoing momentum scrolling first
-    (container.style as any).webkitOverflowScrolling = 'auto';
+    (container.style as any).webkitOverflowScrolling = "auto";
 
-    requestAnimationFrame(() => {
-      container.scrollTo(scrollPositionX, scrollPositionY);
+    await animationFramePromise();
 
-      // Re-enable momentum scrolling after positioning
-      requestAnimationFrame(() => {
-        (container.style as any).webkitOverflowScrolling = 'touch';
-      });
+    container.scrollTo({
+      top: scrollPositionY,
+      left: scrollPositionX,
+      behavior: "instant",
     });
+
+    await animationFramePromise();
+
+    (container.style as any).webkitOverflowScrolling = "touch";
   } else {
-    container.scrollTo(scrollPositionX, scrollPositionY);
+    container.scrollTo({
+      top: scrollPositionY,
+      left: scrollPositionX,
+      behavior: "instant",
+    });
   }
 }
