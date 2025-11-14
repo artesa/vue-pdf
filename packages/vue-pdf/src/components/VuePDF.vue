@@ -5,13 +5,13 @@ import {
   computed,
   onMounted,
   onUnmounted,
-  toRaw,
   watch,
   readonly,
   shallowReactive,
   useTemplateRef,
   shallowRef,
   onBeforeUnmount,
+  markRaw,
 } from "vue";
 
 import type {
@@ -102,10 +102,14 @@ const emit = defineEmits<{
 const canvasElement = useTemplateRef("canvasRef");
 const container = useTemplateRef("containerRef");
 const loadingLayer = useTemplateRef("loadingLayerRef");
+const annotationLayerRef = useTemplateRef('annotationLayerRef');
 const loading = shallowRef(false);
 let renderTask: RenderTask;
 
 const virtualViewportScale = shallowRef<number | undefined>(undefined);
+
+const pdfjsAnnotationLayer = computed(() => annotationLayerRef.value?.annotationLayer);
+const pdfjsAnnotations = computed(() => annotationLayerRef.value?.annotations);
 
 const internalProps = shallowReactive<InternalProps>({
   viewport: undefined,
@@ -350,12 +354,12 @@ function renderVirtualViewport(pageNum: number) {
 }
 
 async function renderPage(pageNum: number) {
-  const doc = toRaw(internalProps.document);
+  const doc = internalProps.document;
   if (!doc) return;
 
   const page = await doc.getPage(pageNum);
 
-  internalProps.page = toRaw(page);
+  internalProps.page = markRaw(page);
 
   const virtualViewport = renderVirtualViewport(pageNum);
 
@@ -394,9 +398,9 @@ async function renderPage(pageNum: number) {
     };
 
     if (virtualViewport) {
-      internalProps.viewport = toRaw(virtualViewport);
+      internalProps.viewport = markRaw(virtualViewport);
     } else {
-      internalProps.viewport = toRaw(viewport);
+      internalProps.viewport = markRaw(viewport);
     }
     renderTask = page.render(renderContext);
     renderTask.promise
@@ -413,7 +417,7 @@ async function renderPage(pageNum: number) {
 
 function initDoc(proxy: PDFDocumentLoadingTask) {
   proxy.promise.then(async (document) => {
-    internalProps.document = toRaw(document);
+    internalProps.document = markRaw(document);
     renderPage(props.page);
   });
 }
@@ -451,7 +455,8 @@ watch(
 watch(
   () => props.virtualScale,
   () => {
-    internalProps.viewport = toRaw(renderVirtualViewport(props.page));
+    const viewport = renderVirtualViewport(props.page);
+    internalProps.viewport = viewport ? markRaw(viewport) : undefined;
   }
 );
 
@@ -500,6 +505,8 @@ defineExpose({
   cancel,
   destroy,
   loading: readonly(loading),
+  pdfjsAnnotationLayer,
+  pdfjsAnnotations
 });
 </script>
 
@@ -513,13 +520,19 @@ defineExpose({
     />
     <AnnotationLayer
       v-if="annotationLayer"
-      v-bind="{ ...internalProps, ...alayerProps }"
+      ref="annotationLayerRef"
+      v-bind="{ ...alayerProps }"
+      :document="internalProps.document"
+      :page="internalProps.page"
+      :viewport="internalProps.viewport"
       @annotation="emit('annotation', $event)"
       @annotation-loaded="emit('annotationLoaded', $event)"
     />
     <TextLayer
       v-if="textLayer"
-      v-bind="{ ...internalProps, ...tlayerProps }"
+      v-bind="{ ...tlayerProps }"
+      :page="internalProps.page"
+      :viewport="internalProps.viewport"
       @highlight="emit('highlight', $event)"
       @text-loaded="emit('textLoaded', $event)"
     />
