@@ -1,8 +1,13 @@
 <!-- eslint-disable unused-imports/no-unused-imports -->
 <!-- Use this component to play with the main components -->
 <script setup lang="ts">
-import testPdf from "@samples/issue141.pdf";
-import { VuePDF, usePDF, getScrollPosition, restoreScrollPosition } from "@tato30/vue-pdf";
+import testPdf from "@samples/annotation text box example edit.pdf";
+import {
+  VuePDF,
+  usePDF,
+  getScrollPosition,
+  restoreScrollPosition,
+} from "@tato30/vue-pdf";
 import { shallowRef, useTemplateRef, watch, nextTick } from "vue";
 
 const { pdf } = usePDF(testPdf);
@@ -36,13 +41,20 @@ watch(scale, async () => {
   <!-- <button @click="test">Test</button> -->
   <div ref="viewerContainer" class="viewer-container">
     <div class="viewer">
-      <VuePDF :scale="realScale" :pdf="pdf" :virtual-scale="scale" text-layer />
       <VuePDF
+        :scale="realScale"
+        :pdf="pdf"
+        :virtual-scale="scale"
+        text-layer
+        annotation-layer
+      />
+      <!-- <VuePDF
         :page="2"
         :scale="realScale"
         :pdf="pdf"
         :virtual-scale="scale"
         text-layer
+        annotation-layer
       />
       <VuePDF
         :page="3"
@@ -50,7 +62,8 @@ watch(scale, async () => {
         :pdf="pdf"
         :virtual-scale="scale"
         text-layer
-      />
+        annotation-layer
+      /> -->
     </div>
   </div>
 
