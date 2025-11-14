@@ -326,7 +326,7 @@ function viewportParamsForPage(page: PDFPageProxy) {
   };
 }
 
-function renderVirtualViewport(pageNum: number) {
+function renderVirtualViewport() {
   if (!props.virtualScale) {
     virtualViewportScale.value = undefined;
     return;
@@ -361,7 +361,7 @@ async function renderPage(pageNum: number) {
 
   internalProps.page = markRaw(page);
 
-  const virtualViewport = renderVirtualViewport(pageNum);
+  const virtualViewport = renderVirtualViewport();
 
   cancelRender();
 
@@ -455,8 +455,7 @@ watch(
 watch(
   () => props.virtualScale,
   () => {
-    const viewport = renderVirtualViewport(props.page);
-    internalProps.viewport = viewport ? markRaw(viewport) : undefined;
+    renderVirtualViewport();
   }
 );
 
