@@ -102,7 +102,7 @@ const emit = defineEmits<{
 const canvasElement = useTemplateRef("canvasRef");
 const container = useTemplateRef("containerRef");
 const loadingLayer = useTemplateRef("loadingLayerRef");
-const annotationLayerRef = useTemplateRef('annotationLayerRef');
+const annotationLayerRef = useTemplateRef('annotationLayerTemplateRef');
 const loading = shallowRef(false);
 let renderTask: RenderTask;
 
@@ -519,7 +519,7 @@ defineExpose({
     />
     <AnnotationLayer
       v-if="annotationLayer"
-      ref="annotationLayerRef"
+      ref="annotationLayerTemplateRef"
       v-bind="{ ...alayerProps }"
       :document="internalProps.document"
       :page="internalProps.page"
