@@ -85,10 +85,16 @@ async function getAnnotations() {
   return annotations;
 }
 
+let abortController: AbortController = new AbortController();
+
 async function render() {
-  layerRef.value!.replaceChildren?.();
+  abortController.abort();
+  abortController = new AbortController();
+  const { signal } = abortController;
+
+  layerRef.value?.replaceChildren?.();
   for (const evtHandler of EVENTS_TO_HANDLER)
-    layerRef.value!.removeEventListener(evtHandler, annotationsEvents);
+    layerRef.value?.removeEventListener(evtHandler, annotationsEvents);
 
   const doc = toRaw(props.document);
 
@@ -101,6 +107,8 @@ async function render() {
   const viewport = props.viewport;
 
   const _annotations = await getAnnotations();
+
+  if (signal.aborted) return;
 
   annotations.value = _annotations ? markRaw(_annotations) : undefined;
 
@@ -162,17 +170,20 @@ async function render() {
     imageResourcesPath: props.imageResourcesPath,
   };
 
+  if (signal.aborted) return;
+
   const annoationLayer = new PDFJS.AnnotationLayer(layerParameters);
 
   annotationLayer.value = markRaw(annoationLayer);
 
   const task = annoationLayer.render(renderParameters);
   task.then(async () => {
+    if (signal.aborted) return;
     emit("annotationLoaded", (await getAnnotations())!);
   });
 
   for (const evtHandler of EVENTS_TO_HANDLER)
-    layerRef.value!.addEventListener(evtHandler, annotationsEvents);
+    layerRef.value?.addEventListener(evtHandler, annotationsEvents);
 }
 
 watch(
@@ -187,6 +198,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  abortController.abort();
   for (const evtHandler of EVENTS_TO_HANDLER)
     layerRef.value?.removeEventListener(evtHandler, annotationsEvents);
 
