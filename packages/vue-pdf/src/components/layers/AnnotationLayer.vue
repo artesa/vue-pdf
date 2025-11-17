@@ -3,7 +3,7 @@ import * as PDFJS from "pdfjs-dist";
 import {
   markRaw,
   onMounted,
-  ref,
+  onUnmounted,
   shallowRef,
   toRaw,
   useTemplateRef,
@@ -39,7 +39,7 @@ const emit = defineEmits<{
   (event: "annotationLoaded", payload: any[]): void;
 }>();
 
-const layer = useTemplateRef("layer");
+const layerRef = useTemplateRef("layer");
 const annotations = shallowRef<any[]>();
 const annotationLayer = shallowRef<PDFJS.AnnotationLayer>();
 
@@ -86,9 +86,9 @@ async function getAnnotations() {
 }
 
 async function render() {
-  layer.value!.replaceChildren?.();
+  layerRef.value!.replaceChildren?.();
   for (const evtHandler of EVENTS_TO_HANDLER)
-    layer.value!.removeEventListener(evtHandler, annotationsEvents);
+    layerRef.value!.removeEventListener(evtHandler, annotationsEvents);
 
   const doc = toRaw(props.document);
 
@@ -135,7 +135,7 @@ async function render() {
   const layerParameters = {
     accessibilityManager: undefined,
     annotationCanvasMap: canvasMap,
-    div: layer.value!,
+    div: layerRef.value!,
     page: page!,
     viewport: viewport!.clone({ dontFlip: true }),
     annotationEditorUIManager: null,
@@ -151,7 +151,7 @@ async function render() {
     viewport: viewport!.clone({ dontFlip: true }),
     linkService: new SimpleLinkService(),
     annotationCanvasMap: canvasMap,
-    div: layer.value!,
+    div: layerRef.value!,
     annotationStorage,
     renderForms: !props.hideForms,
     page: page!,
@@ -172,19 +172,27 @@ async function render() {
   });
 
   for (const evtHandler of EVENTS_TO_HANDLER)
-    layer.value!.addEventListener(evtHandler, annotationsEvents);
+    layerRef.value!.addEventListener(evtHandler, annotationsEvents);
 }
 
 watch(
   () => props.viewport,
   () => {
-    if (props.page && props.viewport && layer.value) render();
+    if (props.page && props.viewport && layerRef.value) render();
   }
 );
 
 onMounted(() => {
-  if (props.page && props.viewport && layer.value) render();
+  if (props.page && props.viewport && layerRef.value) render();
 });
+
+onUnmounted(() => {
+  for (const evtHandler of EVENTS_TO_HANDLER)
+    layerRef.value?.removeEventListener(evtHandler, annotationsEvents);
+
+  annotationLayer.value = undefined;
+  annotations.value = undefined;
+})
 
 defineExpose({
   annotationLayer,
