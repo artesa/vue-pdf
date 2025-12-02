@@ -36,6 +36,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (event: "annotation", payload: AnnotationEventPayload): void;
+  (event: 'annotationRendered'): void;
 }>();
 
 const layerRef = useTemplateRef("layer");
@@ -186,6 +187,7 @@ async function render() {
   const task = annoationLayer.render(renderParameters);
   task.then(async () => {
     if (signal.aborted) return;
+    emit('annotationRendered');
     rendered.value = true;
   });
 

@@ -26,61 +26,21 @@ Payload example:
 }
 ```
 
-## text-loaded
+## text-rendered
 
 ```vue
-<VuePDF :pdf="pdf" @text-loaded="onLoaded" />
+<VuePDF :pdf="pdf" @text-rendered="onLoaded" />
 ```
 
-Emitted when text layer has finished to render, the payload value contains the `textDivs` and `textContent` of the page.
+Emitted when text layer has finished to render.
 
-Payload example:
-```json
-{
-  "textContent": {
-    "items": [{
-      "dir": "ltr",
-      "fontName": "g_d3_f1",
-      "hasEOL": true,
-      "height": 17.9328,
-      "str": "Trace-based Just-in-Time Type Specialization for Dynamic",
-      "transform": [17.9328, 0, 0, 17.9328, 90.5159, 700.6706],
-      "width": 449.09111040000033
-    }], // ... more text items
-    "styles": {
-      "g_d3_f1": {
-        "fontFamily": "sans-serif",
-        "ascent": 0.69,
-        "descent": -0.209,
-        "vertical": false
-      } // ... more objects
-    }
-  },
-  "textDivs": ["<SPANElement>", "<SPANElement>", "..."]
-}
-```
-
-## annotation-loaded
+## annotation-rendered
 
 ```vue
-<VuePDF :pdf="pdf" @annotation-loaded="onLoaded" />
+<VuePDF :pdf="pdf" @annotation-rendered="onLoaded" />
 ```
 
-Emitted when annotation layer has finished to render, the payload value contains the `annotations` of the page.
-
-Payload example:
-```json
-[
-  {
-    "annotationFlags": 4,
-    "annotationType": 20,
-    "rotation": 0,
-    "fieldType": "Tx",
-    "subType": "Widget"
-    // more properties...
-  }
-] // more annotations
-```
+Emitted when annotation layer has finished to render.
 
 ## xfa-loaded
 
