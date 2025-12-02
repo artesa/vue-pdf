@@ -104,13 +104,15 @@ const emit = defineEmits<{
 const canvasElement = useTemplateRef("canvasRef");
 const container = useTemplateRef("containerRef");
 const loadingLayer = useTemplateRef("loadingLayerRef");
-const annotationLayerRef = useTemplateRef('annotationLayerTemplateRef');
+const annotationLayerRef = useTemplateRef("annotationLayerTemplateRef");
 const loading = shallowRef(false);
 let renderTask: RenderTask;
 
 const virtualViewportScale = shallowRef<number | undefined>(undefined);
 
-const pdfjsAnnotationLayer = computed(() => annotationLayerRef.value?.annotationLayer);
+const pdfjsAnnotationLayer = computed(
+  () => annotationLayerRef.value?.annotationLayer
+);
 const pdfjsAnnotations = computed(() => annotationLayerRef.value?.annotations);
 
 const internalProps = shallowReactive<InternalProps>({
@@ -283,20 +285,20 @@ function setupCanvasStyle(
   );
   container.value?.style.setProperty(
     "width",
-    `${Math.floor(virtualViewport?.width ?? viewport.width)}px`
+    `calc(var(--virtual-scale-factor) * ${viewport.width}px)`
   );
   container.value?.style.setProperty(
     "height",
-    `${Math.floor(virtualViewport?.height ?? viewport.height)}px`
+    `calc(var(--virtual-scale-factor) * ${viewport.height}px)`
   );
   // Also setting dimension properties for load layer
   loadingLayer.value?.style.setProperty(
     "width",
-    `${Math.floor(virtualViewport?.width ?? viewport.width)}px`
+    `calc(var(--virtual-scale-factor) * ${viewport.width}px)`
   );
   loadingLayer.value?.style.setProperty(
     "height",
-    `${Math.floor(virtualViewport?.height ?? viewport.height)}px`
+    `calc(var(--virtual-scale-factor) * ${viewport.height}px)`
   );
   loadingLayer.value?.style.setProperty("top", "0");
   loadingLayer.value?.style.setProperty("left", "0");
@@ -350,7 +352,26 @@ function renderVirtualViewport() {
 
   virtualViewportScale.value = virtualViewport.scale * (1 / viewport.scale);
 
-  setupCanvasStyle(viewport, virtualViewport, props.partialViewbox);
+  const virtualScaleFactor = virtualViewport
+    ? virtualViewport.scale * (1 / viewport.scale)
+    : 1;
+
+  container.value?.style.setProperty(
+    "--virtual-scale-factor",
+    `${virtualScaleFactor}`
+  );
+
+  container.value?.style.setProperty(
+    "--scale-factor",
+    `${virtualViewport?.scale ?? viewport.scale}`
+  );
+
+  container.value?.style.setProperty(
+    "--user-unit",
+    `${virtualViewport?.userUnit ?? viewport.userUnit}`
+  );
+
+  // setupCanvasStyle(viewport, virtualViewport, props.partialViewbox);
 
   return virtualViewport;
 }
@@ -507,7 +528,7 @@ defineExpose({
   destroy,
   loading: readonly(loading),
   pdfjsAnnotationLayer,
-  pdfjsAnnotations
+  pdfjsAnnotations,
 });
 </script>
 
