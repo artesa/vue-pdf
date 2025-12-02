@@ -15,6 +15,12 @@ const { pdf } = usePDF(testPdf);
 const scale = shallowRef(1);
 const realScale = shallowRef(0.5);
 
+const rotation = shallowRef(0);
+
+function rotate() {
+  rotation.value = (rotation.value + 90) % 360;
+}
+
 const viewerContainer = useTemplateRef("viewerContainer");
 
 let oldScrollPercentage: ReturnType<typeof getScrollPosition>;
@@ -38,6 +44,7 @@ watch(scale, async () => {
   <button @click="scale -= 0.5">Dec V</button>
   <button @click="realScale += 0.5">Inc R</button>
   <button @click="realScale -= 0.5">Dec R</button>
+  <button @click="rotate">Rotate</button>
   <!-- <button @click="test">Test</button> -->
   <div ref="viewerContainer" class="viewer-container">
     <div class="viewer">
@@ -45,6 +52,7 @@ watch(scale, async () => {
         :scale="realScale"
         :pdf="pdf"
         :virtual-scale="scale"
+        :rotation="rotation"
         text-layer
         annotation-layer
       />
