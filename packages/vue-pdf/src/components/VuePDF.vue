@@ -533,7 +533,15 @@ defineExpose({
 </script>
 
 <template>
-  <div ref="containerRef" style="position: relative; display: block">
+  <div
+    ref="containerRef"
+    style="
+      position: relative;
+      display: block;
+      --scale-round-x: 1px;
+      --scale-round-y: 1px;
+    "
+  >
     <canvas ref="canvasRef" dir="ltr" style="display: block" role="main" />
     <slot
       name="canvas-overlay"
