@@ -36,12 +36,12 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (event: "annotation", payload: AnnotationEventPayload): void;
-  (event: "annotationLoaded", payload: any[]): void;
 }>();
 
 const layerRef = useTemplateRef("layer");
 const annotations = shallowRef<any[]>();
 const annotationLayer = shallowRef<PDFJS.AnnotationLayer>();
+const rendered = shallowRef(false);
 
 function annotationsEvents(evt: Event) {
   const value = annotationEventsHandler(
@@ -88,6 +88,13 @@ async function getAnnotations() {
 let abortController: AbortController = new AbortController();
 
 async function render() {
+  if (rendered.value && annotationLayer.value) {
+    annotationLayer.value.update({
+      viewport: props.viewport!,
+    } as any);
+    return;
+  }
+
   abortController.abort();
   abortController = new AbortController();
   const { signal } = abortController;
@@ -179,7 +186,7 @@ async function render() {
   const task = annoationLayer.render(renderParameters);
   task.then(async () => {
     if (signal.aborted) return;
-    emit("annotationLoaded", (await getAnnotations())!);
+    rendered.value = true;
   });
 
   for (const evtHandler of EVENTS_TO_HANDLER)
