@@ -19,6 +19,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (event: "highlight", payload: HighlightEventPayload): void;
+  (event: "textRendered"): void;
 }>();
 
 const layer = ref<HTMLDivElement>();
@@ -99,6 +100,8 @@ async function render() {
     renderDone = true
 
     textDivs = textLayer.textDivs;
+
+    emit('textRendered');
 
     setEOC();
     findAndHighlight();

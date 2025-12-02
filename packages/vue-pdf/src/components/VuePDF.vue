@@ -95,8 +95,8 @@ const emit = defineEmits<{
   (event: "annotation", payload: AnnotationEventPayload): void;
   (event: "highlight", payload: HighlightEventPayload): void;
   (event: "loaded", payload: LoadedEventPayload): void;
-  (event: "textLoaded", payload: TextLayerLoadedEventPayload): void;
-  (event: "annotationLoaded", payload: any[]): void;
+  (event: "textRendered"): void;
+  (event: "annotationRendered"): void;
   (event: "xfaLoaded"): void;
 }>();
 
@@ -548,7 +548,7 @@ defineExpose({
       :page="internalProps.page"
       :viewport="internalProps.viewport"
       @annotation="emit('annotation', $event)"
-      @annotation-loaded="emit('annotationLoaded', $event)"
+      @annotation-rendered="emit('annotationRendered')"
     />
     <TextLayer
       v-if="textLayer"
@@ -556,7 +556,7 @@ defineExpose({
       :page="internalProps.page"
       :viewport="internalProps.viewport"
       @highlight="emit('highlight', $event)"
-      @text-loaded="emit('textLoaded', $event)"
+      @text-rendered="emit('textRendered')"
     />
     <XFALayer v-bind="{ ...internalProps }" @xfa-loaded="emit('xfaLoaded')" />
     <div v-show="loading" ref="loadingLayerRef" style="position: absolute">
